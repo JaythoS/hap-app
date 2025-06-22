@@ -1,76 +1,133 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { prisma } from '@/lib/prisma'
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { firstName, lastName, email, password, profileType } = await req.json()
+    const { adsoyad, email, password, userType } = await request.json()
 
-    // Validate profileType
-    if (!['user', 'project', 'sponsor'].includes(profileType)) {
-      return new Response(
-        JSON.stringify({ error: 'Geçersiz profil tipi' }),
+    // Gerekli alanları kontrol et
+    if (!adsoyad || !email || !password) {
+      return NextResponse.json(
+        { error: 'Ad soyad, email ve şifre alanları zorunludur!' },
         { status: 400 }
       )
     }
 
-    // Convert profileType to uppercase for Prisma enum
-    const dbProfileType = profileType.toUpperCase() as 'USER' | 'PROJECT' | 'SPONSOR'
+    // Email formatını kontrol et
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Geçerli bir email adresi girin!' },
+        { status: 400 }
+      )
+    }
 
-    // Debug için log
-    console.log('Gelen veri:', { firstName, lastName, email })
+    // Şifre uzunluğunu kontrol et
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: 'Şifre en az 6 karakter olmalı!' },
+        { status: 400 }
+      )
+    }
 
-    // Check if user already exists
+    // UserType kontrolü
+    const validUserTypes = ['NORMAL', 'PROJE', 'SPONSOR']
+    if (!validUserTypes.includes(userType)) {
+      return NextResponse.json(
+        { error: 'Geçersiz kullanıcı tipi!' },
+        { status: 400 }
+      )
+    }
+
+    // Email'in daha önce kullanılıp kullanılmadığını kontrol et
     const existingUser = await prisma.user.findUnique({
       where: { email }
     })
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Bu email adresi zaten kullanımda' },
+        { error: 'Bu email adresi zaten kullanılıyor!' },
         { status: 400 }
       )
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // Şifreyi hash'le
+    const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Create user
+    // Kullanıcıyı oluştur
     const user = await prisma.user.create({
       data: {
-        firstName,
-        lastName,
-        email,
+        adsoyad: adsoyad.trim(),
+        email: email.toLowerCase().trim(),
         password: hashedPassword,
-        profileType: dbProfileType,
+        userType: userType as 'NORMAL' | 'PROJE' | 'SPONSOR',
+        // Sosyal medya alanları ve projectIds varsayılan değerlerle kalacak
       },
-    })
-
-    // Debug için log
-    console.log('Oluşturulan kullanıcı:', user)
-
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        profileType: user.profileType,
+      select: {
+        id: true,
+        adsoyad: true,
+        email: true,
+        userType: true,
+        profilFoto: true,
+        hakkimda: true,
+        website: true,
+        twitter: true,
+        linkedin: true,
+        instagram: true,
+        github: true,
+        createdAt: true
       }
     })
-  } catch (error: any) {
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Bu e-posta adresi zaten kullanımda' },
-        { status: 400 }
-      )
+
+    // Hoşgeldin bildirimini oluştur
+    let welcomeTitle = "🎉 HAP'a Hoş Geldiniz!"
+    let welcomeMessage = ""
+
+    // Kullanıcı tipine göre özel mesaj
+    switch (userType) {
+      case "SPONSOR":
+        welcomeTitle = "🤝 Sponsor Olarak HAP'a Hoş Geldiniz!"
+        welcomeMessage = `Merhaba ${user.adsoyad.split(' ')[0]}, HAP platformuna sponsor olarak katıldığınız için teşekkür ederiz! Burada yenilikçi projeleri keşfedebilir ve destekleyebilirsiniz. İyi sponsorluklar!`
+        break
+      case "PROJE":
+        welcomeTitle = "🚀 Proje Hesabı Olarak HAP'a Hoş Geldiniz!"
+        welcomeMessage = `Merhaba ${user.adsoyad.split(' ')[0]}, HAP platformuna proje hesabı olarak katıldığınız için teşekkür ederiz! Projelerinizi paylaşabilir, takım üyeleri bulabilir ve sponsorlarla bağlantı kurabilirsiniz. Başarılar!`
+        break
+      default:
+        welcomeTitle = "🎉 HAP'a Hoş Geldiniz!"
+        welcomeMessage = `Merhaba ${user.adsoyad.split(' ')[0]}, HAP platformuna katıldığınız için teşekkür ederiz! Burada yenilikçi projeleri keşfedebilir, takımlara katılabilir ve girişimcilik dünyasında yer alabilirsiniz. Keyifli keşifler!`
     }
-    
-    // Hata detayını görmek için
-    console.error('Kayıt hatası:', error)
-    
+
+    // Hoşgeldin bildirimi oluştur
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          type: 'GENERAL',
+          title: welcomeTitle,
+          message: welcomeMessage,
+          data: {
+            welcomeMessage: true,
+            userType: userType,
+            joinDate: new Date()
+          }
+        }
+      })
+    } catch (notificationError) {
+      console.error('Hoşgeldin bildirimi oluşturulamadı:', notificationError)
+      // Bildirim oluşturulamazsa kayıt işlemini durdurmayalım
+    }
+
+    return NextResponse.json({
+      message: 'Hesap başarıyla oluşturuldu!',
+      user
+    }, { status: 201 })
+
+  } catch (error) {
+    console.error('Register error:', error)
     return NextResponse.json(
-      { error: 'Kayıt işlemi başarısız oldu' },
+      { error: 'Sunucu hatası. Lütfen tekrar deneyin.' },
       { status: 500 }
     )
   }

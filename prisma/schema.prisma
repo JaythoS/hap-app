@@ -1,24 +1,258 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-enum ProfileType {
-  USER
-  PROJECT
+enum UserType {
+  NORMAL
+  PROJE
   SPONSOR
 }
 
+enum TeamMemberRole {
+  LEADER      // Proje lideri/sahibi
+  MEMBER      // Normal üye
+  ADMIN       // Takım yöneticisi
+}
+
+enum TeamMemberStatus {
+  ACTIVE      // Aktif üye
+  PENDING     // Davet bekliyor
+  REJECTED    // Daveti reddetti
+  REMOVED     // Takımdan çıkarıldı
+}
+
+enum NotificationType {
+  TEAM_INVITE           // Takım davet edildi
+  TEAM_INVITE_ACCEPTED  // Davet kabul edildi  
+  TEAM_INVITE_REJECTED  // Davet reddedildi
+  TEAM_MEMBER_REMOVED   // Üye takımdan çıkarıldı
+  PROJECT_UPDATE        // Proje güncellendi
+  INVESTMENT_REQUEST    // Yatırım talebi
+  INVESTMENT_ACCEPTED   // Yatırım kabul edildi
+  INVESTMENT_REJECTED   // Yatırım reddedildi
+  GENERAL               // Genel bildirim
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  firstName String
-  lastName  String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  profileType ProfileType @default(USER)
-} 
+  id          Int      @id @default(autoincrement())
+  adsoyad     String
+  email       String   @unique
+  password    String   // Hash'li şifre
+  userType    UserType @default(NORMAL)
+  profilFoto  String?  // Profil fotoğrafı URL'si (opsiyonel)
+  hakkimda    String?  @db.Text // Hakkımda/Bio kısmı (opsiyonel)
+  
+  // Sosyal medya hesapları ve linkler
+  website     String?  // Kişisel website/blog linki
+  twitter     String?  // Twitter/X kullanıcı adı veya linki
+  linkedin    String?  // LinkedIn profil linki
+  instagram   String?  // Instagram kullanıcı adı veya linki
+  github      String?  // GitHub kullanıcı adı veya linki
+  
+  // İlişkiler
+  sponsors         Sponsor[]         // Kullanıcının oluşturduğu sponsor profilleri
+  projects         Project[]         // Kullanıcının oluşturduğu projeler
+  teamMemberships  TeamMember[]      // Kullanıcının üye olduğu takımlar
+  sentInvitations  TeamInvitation[] @relation("InviterUser")      // Gönderdiği davetler
+  receivedInvitations TeamInvitation[] @relation("InviteeUser")   // Aldığı davetler
+  notifications    Notification[]    // Kullanıcının bildirimleri
+  
+  createdAt   DateTime @default(now()) // Join date
+  updatedAt   DateTime @updatedAt      // Update date
+
+  @@map("users")
+}
+
+model Team {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @unique // Her projenin bir takımı var
+  name        String   // Takım adı (proje adı ile aynı olabilir)
+  description String?  @db.Text // Takım açıklaması
+  
+  // İlişkiler
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  members     TeamMember[]  // Takım üyeleri
+  invitations TeamInvitation[] // Bekleyen davetler
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id          Int               @id @default(autoincrement())
+  teamId      Int
+  userId      Int
+  role        TeamMemberRole    @default(MEMBER)
+  status      TeamMemberStatus  @default(PENDING)
+  joinedAt    DateTime?         // Takıma katılma tarihi (kabul ettiğinde set edilir)
+  
+  // İlişkiler
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([teamId, userId]) // Aynı kullanıcı aynı takımda sadece bir kez olabilir
+  @@map("team_members")
+}
+
+model TeamInvitation {
+  id          Int               @id @default(autoincrement())
+  teamId      Int
+  inviterId   Int               // Daveti gönderen kullanıcı
+  inviteeId   Int?              // Davet edilen kullanıcı (eğer sistemde kayıtlıysa)
+  inviteeEmail String           // Davet edilen email (kullanıcı sistemde olmayabilir)
+  message     String?           @db.Text // Davet mesajı
+  status      TeamMemberStatus  @default(PENDING)
+  expiresAt   DateTime?         // Davet sona erme tarihi
+  
+  // İlişkiler
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  inviter     User     @relation("InviterUser", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee     User?    @relation("InviteeUser", fields: [inviteeId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([teamId, inviteeEmail]) // Aynı email aynı takıma sadece bir kez davet edilebilir
+  @@map("team_invitations")
+}
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  type        NotificationType
+  title       String
+  message     String           @db.Text
+  data        Json?            // Ek veriler (projectId, teamId, invitationId vs)
+  isRead      Boolean          @default(false)
+  readAt      DateTime?        // Okunma tarihi
+  
+  // İlişkiler
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("notifications")
+}
+
+model Sponsor {
+  id           Int      @id @default(autoincrement())
+  userId       Int      // Hangi kullanıcının sponsor bilgilerini oluşturduğu
+  sponsorAdi   String
+  resim        String?  // İsteğe bağlı resim URL'si
+  video        String?  // İsteğe bağlı video URL'si
+  hakkimizda   String?  @db.Text // Hakkımızda/Şirket tanıtımı (opsiyonel)
+  
+  // İletişim bilgileri
+  email        String   @unique
+  telefon      String?
+  website      String?
+  
+  // İlişkiler
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  yatirimlar   SponsorYatirim[] // Hangi projeye ne kadar yatırım yapmış
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("sponsors")
+}
+
+model Project {
+  id                Int           @id @default(autoincrement())
+  userId            Int           // Projeyi oluşturan kullanıcının ID'si
+  projeAdi          String
+  projeKonusu       String
+  takimAdi          String
+  takimKurulusYili  Int
+  takimEgitimSeviyesi String
+  katilimIli        String        // Takımın katılım sağladığı il
+  projeOzeti        String        @db.Text @default("")
+  resim             String?       @db.Text // Proje logosu/resmi Base64 formatında (opsiyonel)
+  presentationUrl   String?       // Proje sunum linki (opsiyonel)
+  basarilar         String[]      @default([]) // Proje başarıları dizisi
+  
+  // İlişkiler
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team             Team?          // Projenin takımı
+  form             Form?          // Projeye ait form bilgileri
+  sponsorYatirimlar SponsorYatirim[] // Bu projeye yapılan yatırımlar
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("projects")
+}
+
+model Form {
+  id                     Int      @id @default(autoincrement())
+  projeId                Int      @unique // Her projenin bir formu olabilir
+  project                Project  @relation(fields: [projeId], references: [id], onDelete: Cascade)
+  
+  projeAdi               String
+  problem                String   @db.Text
+  cozum                  String   @db.Text
+  hedefKitle             String   @db.Text
+  etki                   String   @db.Text
+  ayirtEdiciOzellikleri  String   @db.Text
+  
+  // Link alanları
+  projeTanitimVideosu    String?  // Video linki
+  sunum                  String?  // Sunum linki
+  alakaliDokumanlar      String[] @default([]) // Doküman linkleri array
+  
+  projeEkibi             String[] // Mail adresleri dizisi (eski sistem - yeni sistemde Team kullanılacak)
+  
+  // AI tarafından oluşturulacak alanlar
+  ozgunluk               String?  @db.Text // AI oluşturacak
+  pazarBuyuklugu         String?  @db.Text // AI oluşturacak
+  pazardakiRekabet       String?  @db.Text // AI oluşturacak
+  
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@map("forms")
+}
+
+enum InvestmentStatus {
+  PENDING   // Bekliyor (lider onayı bekleniyor)
+  ACCEPTED  // Kabul edildi
+  REJECTED  // Reddedildi
+}
+
+model SponsorYatirim {
+  id         Int      @id @default(autoincrement())
+  sponsorId  Int
+  projeId    Int
+  yatirimMiktari Decimal @db.Decimal(15, 2) // Yatırım miktarı
+  yatirimTarihi  DateTime @default(now())
+  mesaj      String?  @db.Text // Yatırım mesajı
+  status     InvestmentStatus @default(PENDING) // Yatırım durumu
+  
+  // İlişkiler
+  sponsor    Sponsor  @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  proje      Project  @relation(fields: [projeId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("sponsor_yatirimlar")
+}
+
+// Diğer modeller buraya eklenecek
