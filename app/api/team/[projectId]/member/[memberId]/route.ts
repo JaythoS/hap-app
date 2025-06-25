@@ -171,9 +171,9 @@ export async function PATCH(
 
     // Güncelleyen kişinin yetkisi var mı kontrol et
     const updaterMember = team.members.find(m => m.userId === parseInt(updatedBy))
-    if (!updaterMember || (updaterMember.role !== 'LEADER' && updaterMember.role !== 'ADMIN')) {
+    if (!updaterMember || updaterMember.role !== 'LEADER') {
       return NextResponse.json({ 
-        error: 'Bu işlem için yetkiniz yok' 
+        error: 'Sadece takım lideri yetki verebilir' 
       }, { status: 403 })
     }
 
