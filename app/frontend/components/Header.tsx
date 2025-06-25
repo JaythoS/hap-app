@@ -47,7 +47,6 @@ export default function Header() {
   }
 
 
-
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -347,7 +346,7 @@ export default function Header() {
       </div>
 
       {/* Sağ menüler */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 mr-8 mt-4">
         <div className="relative" ref={menuRef}>
         <button 
           className="relative p-2 bg-[#2C2D31] rounded-full"
