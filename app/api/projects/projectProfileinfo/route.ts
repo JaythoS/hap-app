@@ -54,9 +54,10 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        orderBy: {
-          createdAt: 'desc'
-        }
+        orderBy: [
+          { total: 'desc' }, // Total puanı yüksek olan en üstte
+          { createdAt: 'desc' } // Total puanı aynı olanlar arasında yeni olanlar üstte
+        ]
       })
       
       return NextResponse.json(projects)
@@ -111,9 +112,10 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        orderBy: {
-          createdAt: 'desc'
-        }
+        orderBy: [
+          { total: 'desc' }, // Total puanı yüksek olan en üstte
+          { createdAt: 'desc' } // Total puanı aynı olanlar arasında yeni olanlar üstte
+        ]
       })
       
       return NextResponse.json(projects)

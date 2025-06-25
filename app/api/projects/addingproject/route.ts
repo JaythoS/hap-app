@@ -29,9 +29,10 @@ export async function GET(request: NextRequest) {
           },
           form: true
         },
-        orderBy: {
-          createdAt: 'desc'
-        }
+        orderBy: [
+          { total: 'desc' }, // Total puanı yüksek olan en üstte
+          { createdAt: 'desc' } // Total puanı aynı olanlar arasında yeni olanlar üstte
+        ]
       })
       
       return NextResponse.json(projects)
@@ -60,9 +61,10 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        orderBy: {
-          createdAt: 'desc'
-        }
+        orderBy: [
+          { total: 'desc' }, // Total puanı yüksek olan en üstte
+          { createdAt: 'desc' } // Total puanı aynı olanlar arasında yeni olanlar üstte
+        ]
       })
       
       return NextResponse.json(projects)
@@ -197,7 +199,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Yeni proje oluştur - önce resim olmadan
+    // AI Analiz skorlarını rastgele oluştur (40-100 arası)
+    const ozgunluk = Math.floor(Math.random() * 61) + 40 // 40-100 arası rastgele sayı
+    const pazarBuyuklugu = Math.floor(Math.random() * 61) + 40
+    const pazardakiRekabet = Math.floor(Math.random() * 61) + 40
+    const total = Math.floor((ozgunluk + pazarBuyuklugu + pazardakiRekabet) / 3) // Ortalama
+
+    // Yeni proje oluştur - rastgele AI skorları ile
     // @ts-ignore - Geçici Prisma client uyumsuzluğu
     const project = await prisma.project.create({
       data: {
@@ -212,6 +220,11 @@ export async function POST(request: NextRequest) {
         presentationUrl: presentationUrl?.trim() || null,
         // @ts-ignore
         basarilar: achievementsArray,
+        // AI Analiz skorları
+        ozgunluk: ozgunluk,
+        pazarBuyuklugu: pazarBuyuklugu,
+        pazardakiRekabet: pazardakiRekabet,
+        total: total,
         userId: parseInt(userId)
       }
     })

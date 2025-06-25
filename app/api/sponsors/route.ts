@@ -77,20 +77,31 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json(userSponsor)
     } else {
-      // Tüm sponsor'ları getir
+      // Tüm sponsor'ları getir - toplam yatırım miktarına göre sırala
       const sponsors = await prisma.sponsor.findMany({
         include: {
           // @ts-ignore
           user: true, // Sponsor'u oluşturan kullanıcı bilgilerini de getir
           yatirimlar: {
+            where: {
+              // @ts-ignore
+              status: 'ACCEPTED' // Sadece onaylanmış yatırımları say
+            },
             include: {
               proje: true
             }
           }
         }
       })
+
+      // JavaScript'te toplam yatırım miktarına göre sırala
+      const sortedSponsors = sponsors.sort((a, b) => {
+        const totalA = a.yatirimlar.reduce((sum, yatirim) => sum + parseFloat(yatirim.yatirimMiktari.toString()), 0)
+        const totalB = b.yatirimlar.reduce((sum, yatirim) => sum + parseFloat(yatirim.yatirimMiktari.toString()), 0)
+        return totalB - totalA // En çok yatırım yapan en üstte
+      })
       
-      return NextResponse.json(sponsors)
+      return NextResponse.json(sortedSponsors)
     }
   } catch (error) {
     console.error('Sponsor bilgileri alınırken hata:', error)
