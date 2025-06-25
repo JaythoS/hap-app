@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Upload, ChevronRight } from "lucide-react"
@@ -202,7 +203,7 @@ export default function AddProjectPage() {
   }
 
   if (!user) {
-    router.push('/frontend/registerPage')
+    router.push('/')
     return null
   }
 
