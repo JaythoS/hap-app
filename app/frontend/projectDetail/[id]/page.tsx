@@ -51,24 +51,22 @@ interface ProjectData {
   updatedAt: string
 }
 
-// Static data that remains unchanged - AI Analysis
-const staticProjectDetails = {
-  aiAnalysis: {
-    targetAudience: {
-      score: 85,
-      details: {
-        ageRange: "18-35 yaş",
-        primaryGroup: "Üniversite öğrencileri ve genç profesyoneller",
-        interests: ["Teknoloji", "Eğitim", "Kişisel gelişim"],
-        location: "Büyükşehirler",
-        digitalBehavior: "Aktif sosyal medya kullanıcıları",
-        purchasePower: "Orta-yüksek gelir grubu"
-      }
-    },
-    originality: 85,
-    marketSize: 55,
-    competition: 15,
-  }
+// Static data for target audience details (keeping this as it's UI-specific)
+const staticTargetAudienceDetails = {
+  ageRange: "18-35 yaş",
+  primaryGroup: "Üniversite öğrencileri ve genç profesyoneller",
+  interests: ["Teknoloji", "Eğitim", "Kişisel gelişim"],
+  location: "Büyükşehirler",
+  digitalBehavior: "Aktif sosyal medya kullanıcıları",
+  purchasePower: "Orta-yüksek gelir grubu"
+}
+
+// AI Analysis data interface
+interface AIAnalysisData {
+  risk: number
+  marketSize: number
+  originality: number
+  competition: number
 }
 
 // YouTube URL'ini embed formatına çeviren fonksiyon
@@ -108,6 +106,42 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
   const [showInvestModal, setShowInvestModal] = useState(false)
   const [investAmount, setInvestAmount] = useState('')
   const [investDescription, setInvestDescription] = useState('')
+  const [aiAnalysisData, setAiAnalysisData] = useState<AIAnalysisData | null>(null)
+  const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false)
+  const [aiAnalysisError, setAiAnalysisError] = useState<string | null>(null)
+
+  const fetchAIAnalysis = async (projectId: string) => {
+    setAiAnalysisLoading(true)
+    setAiAnalysisError(null)
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/ai-analysis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error('AI analizi alınamadı')
+      }
+      
+      const result = await response.json()
+      setAiAnalysisData(result.data)
+    } catch (error) {
+      console.error('AI Analysis error:', error)
+      setAiAnalysisError(error instanceof Error ? error.message : 'AI analizi sırasında hata oluştu')
+      // Set fallback values
+      setAiAnalysisData({
+        risk: 65,
+        marketSize: 55,
+        originality: 85,
+        competition: 15
+      })
+    } finally {
+      setAiAnalysisLoading(false)
+    }
+  }
 
   useEffect(() => {
     const fetchProjectData = async () => {
@@ -121,6 +155,9 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
         
         const data = await response.json()
         setProjectData(data)
+        
+        // Fetch AI analysis after project data is loaded
+        await fetchAIAnalysis(resolvedParams.id)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Bir hata oluştu!')
       } finally {
@@ -420,9 +457,20 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
           </div>
         )}
 
-        {/* AI Analysis - Static data */}
+        {/* AI Analysis - Dynamic data */}
         <div className="bg-[#2C2D31] rounded-xl p-6 mt-6">
           <h2 className="text-xl font-bold mb-6">Yapay Zeka Analizleri</h2>
+          
+          {aiAnalysisError && (
+            <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 mb-4">
+              <p className="text-red-400 text-sm">
+                ⚠️ AI analizi alınırken hata oluştu: {aiAnalysisError}
+              </p>
+              <p className="text-red-300 text-xs mt-1">
+                Varsayılan değerler gösterilmektedir.
+              </p>
+            </div>
+          )}
           
           <div className="grid grid-cols-2 gap-6">
             {/* Hedef Kitle */}
@@ -442,7 +490,11 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
               <div className="flex flex-col items-center">
                 <span className="text-sm text-gray-400 mb-2">ÖZGÜNLÜK</span>
                 <div className="w-20 h-20 rounded-full border-4 border-blue-400 flex items-center justify-center">
-                  <span className="text-2xl font-bold">{staticProjectDetails.aiAnalysis.originality}</span>
+                  {aiAnalysisLoading ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+                  ) : (
+                    <span className="text-2xl font-bold">{aiAnalysisData?.originality || 85}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -452,7 +504,11 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
               <div className="flex flex-col items-center">
                 <span className="text-sm text-gray-400 mb-2">PAZAR BÜYÜKLÜĞÜ</span>
                 <div className="w-20 h-20 rounded-full border-4 border-yellow-400 flex items-center justify-center">
-                  <span className="text-2xl font-bold">{staticProjectDetails.aiAnalysis.marketSize}</span>
+                  {aiAnalysisLoading ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
+                  ) : (
+                    <span className="text-2xl font-bold">{aiAnalysisData?.marketSize || 55}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -461,7 +517,11 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
               <div className="flex flex-col items-center">
                 <span className="text-sm text-gray-400 mb-2">PAZARDEKİ REKABET</span>
                 <div className="w-20 h-20 rounded-full border-4 border-red-400 flex items-center justify-center">
-                  <span className="text-2xl font-bold">{staticProjectDetails.aiAnalysis.competition}</span>
+                  {aiAnalysisLoading ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-400"></div>
+                  ) : (
+                    <span className="text-2xl font-bold">{aiAnalysisData?.competition || 15}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -532,18 +592,18 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
             <div className="space-y-4">
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">Yaş Aralığı</h4>
-                <p>{staticProjectDetails.aiAnalysis.targetAudience.details.ageRange}</p>
+                <p>{staticTargetAudienceDetails.ageRange}</p>
               </div>
 
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">Temel Grup</h4>
-                <p>{staticProjectDetails.aiAnalysis.targetAudience.details.primaryGroup}</p>
+                <p>{staticTargetAudienceDetails.primaryGroup}</p>
               </div>
 
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">İlgi Alanları</h4>
                 <div className="flex flex-wrap gap-2">
-                  {staticProjectDetails.aiAnalysis.targetAudience.details.interests.map((interest, index) => (
+                  {staticTargetAudienceDetails.interests.map((interest: string, index: number) => (
                     <span 
                       key={index}
                       className="bg-[#1A1B1E] px-3 py-1 rounded-full text-sm"
@@ -556,17 +616,17 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
 
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">Lokasyon</h4>
-                <p>{staticProjectDetails.aiAnalysis.targetAudience.details.location}</p>
+                <p>{staticTargetAudienceDetails.location}</p>
               </div>
 
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">Dijital Davranış</h4>
-                <p>{staticProjectDetails.aiAnalysis.targetAudience.details.digitalBehavior}</p>
+                <p>{staticTargetAudienceDetails.digitalBehavior}</p>
               </div>
 
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">Satın Alma Gücü</h4>
-                <p>{staticProjectDetails.aiAnalysis.targetAudience.details.purchasePower}</p>
+                <p>{staticTargetAudienceDetails.purchasePower}</p>
               </div>
             </div>
           </div>
