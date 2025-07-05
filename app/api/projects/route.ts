@@ -25,9 +25,10 @@ export async function GET(request: Request) {
         },
         form: true
       },
-      orderBy: {
-        createdAt: 'asc'
-      }
+      orderBy: [
+        { total: 'desc' }, // Total puanı yüksek olan en üstte
+        { createdAt: 'asc' } // Total puanı aynı olanlar arasında eski olanlar üstte
+      ]
     })
 
     return NextResponse.json(projects)

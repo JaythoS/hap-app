@@ -18,6 +18,11 @@ interface ProjectData {
   projeOzeti: string
   resim?: string | null // Proje resmi/logosu
   basarilar: string[] // Proje başarıları
+  // AI Analiz skorları
+  ozgunluk?: number | null
+  pazarBuyuklugu?: number | null
+  pazardakiRekabet?: number | null
+  total?: number | null
   sponsorYatirimlar?: any[]
   team?: {
     id: number
@@ -473,10 +478,10 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
           )}
           
           <div className="grid grid-cols-2 gap-6">
-            {/* Hedef Kitle */}
+            {/* Proje Detayları */}
             <div className="bg-[#1A1B1E] rounded-xl p-4">
               <div className="flex flex-col items-center">
-                <span className="text-sm text-gray-400 mb-2">HEDEF KİTLE</span>
+                <span className="text-sm text-gray-400 mb-2">PROJE DETAYLARI</span>
                 <button 
                   onClick={() => setShowEssentialDetails(true)}
                   className="w-20 h-20 rounded-full border-4 border-green-400 flex items-center justify-center hover:bg-[#2C2D31] transition-colors"
@@ -486,6 +491,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
+            {/* Özgünlük */}
             <div className="bg-[#1A1B1E] rounded-xl p-4">
               <div className="flex flex-col items-center">
                 <span className="text-sm text-gray-400 mb-2">ÖZGÜNLÜK</span>
@@ -499,7 +505,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
-            {/* İkinci Satır */}
+            {/* Pazar Büyüklüğü */}
             <div className="bg-[#1A1B1E] rounded-xl p-4">
               <div className="flex flex-col items-center">
                 <span className="text-sm text-gray-400 mb-2">PAZAR BÜYÜKLÜĞÜ</span>
@@ -513,6 +519,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
+            {/* Pazardaki Rekabet */}
             <div className="bg-[#1A1B1E] rounded-xl p-4">
               <div className="flex flex-col items-center">
                 <span className="text-sm text-gray-400 mb-2">PAZARDEKİ REKABET</span>
@@ -526,6 +533,8 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
               </div>
             </div>
           </div>
+
+
         </div>
 
 
