@@ -77,14 +77,19 @@ async def calculate_risk(startup_data: StartupAnalysisInput):
         risk_factors = await analyze_risk_factors(startup_data)
         risk_percentage = calculate_risk_percentage(risk_factors)
         
+        # Round risk categories values
+        risk_categories = risk_factors.get("categories", {})
+        rounded_risk_categories = {k: round(v) if isinstance(v, (int, float)) else v 
+                                  for k, v in risk_categories.items()}
+        
         return RiskAnalysisResponse(
             percentage=risk_percentage,
-            confidence_score=risk_factors.get("confidence_score", 85.0),
+            confidence_score=round(risk_factors.get("confidence_score", 85.0)),
             factors=risk_factors.get("factors", []),
             recommendations=risk_factors.get("recommendations", []),
             analysis_date=datetime.now(),
             risk_level=determine_risk_level(risk_percentage),
-            risk_categories=risk_factors.get("categories", {})
+            risk_categories=rounded_risk_categories
         )
     except HTTPException:
         raise  # Re-raise HTTP exceptions
@@ -116,12 +121,12 @@ async def calculate_market_size(startup_data: StartupAnalysisInput):
         
         return MarketSizeResponse(
             percentage=market_percentage,
-            confidence_score=market_analysis.get("confidence_score", 78.0),
+            confidence_score=round(market_analysis.get("confidence_score", 78.0)),
             factors=market_analysis.get("factors", []),
             recommendations=market_analysis.get("recommendations", []),
             analysis_date=datetime.now(),
             market_potential=determine_market_potential(market_percentage),
-            growth_rate=market_analysis.get("growth_rate", 10.0)
+            growth_rate=round(market_analysis.get("growth_rate", 10.0))
         )
     except HTTPException:
         raise  # Re-raise HTTP exceptions
@@ -154,7 +159,7 @@ async def calculate_originality(startup_data: StartupAnalysisInput):
         
         return OriginalityResponse(
             percentage=originality_percentage,
-            confidence_score=originality_analysis.get("confidence_score", 82.0),
+            confidence_score=round(originality_analysis.get("confidence_score", 82.0)),
             factors=originality_analysis.get("factors", []),
             recommendations=originality_analysis.get("recommendations", []),
             analysis_date=datetime.now(),
@@ -177,7 +182,8 @@ async def analyze_risk_factors(startup_data: StartupAnalysisInput) -> Dict[str, 
 
 def calculate_risk_percentage(risk_factors: Dict[str, Any]) -> float:
     """Calculate overall risk percentage"""
-    return risk_factors.get("percentage", 65.0)
+    percentage = risk_factors.get("percentage", 65.0)
+    return round(percentage)
 
 def determine_risk_level(percentage: float) -> str:
     """Determine risk level based on percentage"""
@@ -197,7 +203,8 @@ async def analyze_market_size(startup_data: StartupAnalysisInput) -> Dict[str, A
 
 def calculate_market_percentage(market_analysis: Dict[str, Any]) -> float:
     """Calculate market size percentage"""
-    return market_analysis.get("percentage", 72.0)
+    percentage = market_analysis.get("percentage", 72.0)
+    return round(percentage)
 
 def determine_market_potential(percentage: float) -> str:
     """Determine market potential based on percentage"""
@@ -217,7 +224,8 @@ async def analyze_originality(startup_data: StartupAnalysisInput) -> Dict[str, A
 
 def calculate_originality_percentage(originality_analysis: Dict[str, Any]) -> float:
     """Calculate originality percentage"""
-    return originality_analysis.get("percentage", 78.0)
+    percentage = originality_analysis.get("percentage", 78.0)
+    return round(percentage)
 
 def determine_originality_level(percentage: float) -> str:
     """Determine originality level based on percentage"""
