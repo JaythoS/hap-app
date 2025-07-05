@@ -249,6 +249,7 @@ export default function TeamManagePage({ params }: { params: Promise<{ projectId
   // Kullanıcının takımdaki rolünü kontrol et
   const currentUserMember = teamData?.team.members.find(m => m.user.id === user?.id)
   const canInviteMembers = currentUserMember && (currentUserMember.role === 'LEADER' || currentUserMember.role === 'ADMIN')
+  const canChangeRoles = currentUserMember && currentUserMember.role === 'LEADER'
   const canRemoveMembers = currentUserMember && currentUserMember.role === 'LEADER'
 
   if (loading || loadingTeam) {
@@ -431,8 +432,8 @@ export default function TeamManagePage({ params }: { params: Promise<{ projectId
                         </div>
                       )}
                       
-                      {/* Yetki Değiştirme Butonu - Sadece ACTIVE üyeler için */}
-                      {canInviteMembers && member.user.id !== user?.id && member.status === 'ACTIVE' && (
+                      {/* Yetki Değiştirme Butonu - Sadece LEADER ve ACTIVE üyeler için */}
+                      {canChangeRoles && member.user.id !== user?.id && member.status === 'ACTIVE' && (
                         <select
                           value={member.role}
                           onChange={(e) => handleRoleChange(member.id, e.target.value as 'LEADER' | 'ADMIN' | 'MEMBER')}

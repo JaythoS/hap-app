@@ -31,6 +31,14 @@ export async function GET(
         resim: true,
         // @ts-ignore
         basarilar: true,
+        // @ts-ignore - AI Analiz skorları
+        ozgunluk: true,
+        // @ts-ignore
+        pazarBuyuklugu: true,
+        // @ts-ignore
+        pazardakiRekabet: true,
+        // @ts-ignore
+        total: true,
         createdAt: true,
         updatedAt: true,
         sponsorYatirimlar: {

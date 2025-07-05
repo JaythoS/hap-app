@@ -45,21 +45,15 @@ export default function SponsorDashboard() {
           const response = await fetch('/api/projects')
           if (response.ok) {
             const data = await response.json()
-            // En eski proje en üstte olacak şekilde sırala
-            const sortedProjects = data.sort((a: Project, b: Project) => 
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            )
-            setProjects(sortedProjects)
+            // API'dan zaten total puanına göre sıralanmış gelir, frontend'de tekrar sıralamaya gerek yok
+            setProjects(data)
           }
         } else if (activeTab === "Sponsorlar") {
           const response = await fetch('/api/sponsors')
           if (response.ok) {
             const data = await response.json()
-            // En eski sponsor en üstte olacak şekilde sırala
-            const sortedSponsors = data.sort((a: Sponsor, b: Sponsor) => 
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            )
-            setSponsors(sortedSponsors)
+            // API'dan zaten toplam yatırım miktarına göre sıralanmış gelir, frontend'de tekrar sıralamaya gerek yok
+            setSponsors(data)
           }
         }
       } catch (error) {

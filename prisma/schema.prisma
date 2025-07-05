@@ -188,6 +188,12 @@ model Project {
   presentationUrl   String?       // Proje sunum linki (opsiyonel)
   basarilar         String[]      @default([]) // Proje başarıları dizisi
   
+  // AI Analiz Skorları (0-100 arası değerler)
+  ozgunluk          Int?          // Özgünlük skoru
+  pazarBuyuklugu    Int?          // Pazar büyüklüğü skoru
+  pazardakiRekabet  Int?          // Pazardaki rekabet skoru
+  total             Int?          // Toplam skor
+  
   // İlişkiler
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   team             Team?          // Projenin takımı

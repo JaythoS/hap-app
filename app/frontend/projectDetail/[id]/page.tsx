@@ -18,6 +18,11 @@ interface ProjectData {
   projeOzeti: string
   resim?: string | null // Proje resmi/logosu
   basarilar: string[] // Proje başarıları
+  // AI Analiz skorları
+  ozgunluk?: number | null
+  pazarBuyuklugu?: number | null
+  pazardakiRekabet?: number | null
+  total?: number | null
   sponsorYatirimlar?: any[]
   team?: {
     id: number
@@ -51,24 +56,14 @@ interface ProjectData {
   updatedAt: string
 }
 
-// Static data that remains unchanged - AI Analysis
-const staticProjectDetails = {
-  aiAnalysis: {
-    targetAudience: {
-      score: 85,
-      details: {
-        ageRange: "18-35 yaş",
-        primaryGroup: "Üniversite öğrencileri ve genç profesyoneller",
-        interests: ["Teknoloji", "Eğitim", "Kişisel gelişim"],
-        location: "Büyükşehirler",
-        digitalBehavior: "Aktif sosyal medya kullanıcıları",
-        purchasePower: "Orta-yüksek gelir grubu"
-      }
-    },
-    originality: 85,
-    marketSize: 55,
-    competition: 15,
-  }
+// Static target audience details - Bu veriler şimdilik sabit kalacak
+const staticTargetAudienceDetails = {
+  ageRange: "18-35 yaş",
+  primaryGroup: "Üniversite öğrencileri ve genç profesyoneller",
+  interests: ["Teknoloji", "Eğitim", "Kişisel gelişim"],
+  location: "Büyükşehirler",
+  digitalBehavior: "Aktif sosyal medya kullanıcıları",
+  purchasePower: "Orta-yüksek gelir grubu"
 }
 
 // YouTube URL'ini embed formatına çeviren fonksiyon
@@ -420,15 +415,15 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
           </div>
         )}
 
-        {/* AI Analysis - Static data */}
+        {/* AI Analysis - Database data */}
         <div className="bg-[#2C2D31] rounded-xl p-6 mt-6">
           <h2 className="text-xl font-bold mb-6">Yapay Zeka Analizleri</h2>
           
           <div className="grid grid-cols-2 gap-6">
-            {/* Hedef Kitle */}
+            {/* Proje Detayları */}
             <div className="bg-[#1A1B1E] rounded-xl p-4">
               <div className="flex flex-col items-center">
-                <span className="text-sm text-gray-400 mb-2">HEDEF KİTLE</span>
+                <span className="text-sm text-gray-400 mb-2">PROJE DETAYLARI</span>
                 <button 
                   onClick={() => setShowEssentialDetails(true)}
                   className="w-20 h-20 rounded-full border-4 border-green-400 flex items-center justify-center hover:bg-[#2C2D31] transition-colors"
@@ -438,34 +433,38 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
+            {/* Özgünlük */}
             <div className="bg-[#1A1B1E] rounded-xl p-4">
               <div className="flex flex-col items-center">
                 <span className="text-sm text-gray-400 mb-2">ÖZGÜNLÜK</span>
                 <div className="w-20 h-20 rounded-full border-4 border-blue-400 flex items-center justify-center">
-                  <span className="text-2xl font-bold">{staticProjectDetails.aiAnalysis.originality}</span>
+                  <span className="text-2xl font-bold">{projectData.ozgunluk || '--'}</span>
                 </div>
               </div>
             </div>
 
-            {/* İkinci Satır */}
+            {/* Pazar Büyüklüğü */}
             <div className="bg-[#1A1B1E] rounded-xl p-4">
               <div className="flex flex-col items-center">
                 <span className="text-sm text-gray-400 mb-2">PAZAR BÜYÜKLÜĞÜ</span>
                 <div className="w-20 h-20 rounded-full border-4 border-yellow-400 flex items-center justify-center">
-                  <span className="text-2xl font-bold">{staticProjectDetails.aiAnalysis.marketSize}</span>
+                  <span className="text-2xl font-bold">{projectData.pazarBuyuklugu || '--'}</span>
                 </div>
               </div>
             </div>
 
+            {/* Pazardaki Rekabet */}
             <div className="bg-[#1A1B1E] rounded-xl p-4">
               <div className="flex flex-col items-center">
                 <span className="text-sm text-gray-400 mb-2">PAZARDEKİ REKABET</span>
                 <div className="w-20 h-20 rounded-full border-4 border-red-400 flex items-center justify-center">
-                  <span className="text-2xl font-bold">{staticProjectDetails.aiAnalysis.competition}</span>
+                  <span className="text-2xl font-bold">{projectData.pazardakiRekabet || '--'}</span>
                 </div>
               </div>
             </div>
           </div>
+
+
         </div>
 
 
@@ -532,18 +531,18 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
             <div className="space-y-4">
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">Yaş Aralığı</h4>
-                <p>{staticProjectDetails.aiAnalysis.targetAudience.details.ageRange}</p>
+                <p>{staticTargetAudienceDetails.ageRange}</p>
               </div>
 
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">Temel Grup</h4>
-                <p>{staticProjectDetails.aiAnalysis.targetAudience.details.primaryGroup}</p>
+                <p>{staticTargetAudienceDetails.primaryGroup}</p>
               </div>
 
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">İlgi Alanları</h4>
                 <div className="flex flex-wrap gap-2">
-                  {staticProjectDetails.aiAnalysis.targetAudience.details.interests.map((interest, index) => (
+                  {staticTargetAudienceDetails.interests.map((interest: string, index: number) => (
                     <span 
                       key={index}
                       className="bg-[#1A1B1E] px-3 py-1 rounded-full text-sm"
@@ -556,17 +555,17 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
 
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">Lokasyon</h4>
-                <p>{staticProjectDetails.aiAnalysis.targetAudience.details.location}</p>
+                <p>{staticTargetAudienceDetails.location}</p>
               </div>
 
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">Dijital Davranış</h4>
-                <p>{staticProjectDetails.aiAnalysis.targetAudience.details.digitalBehavior}</p>
+                <p>{staticTargetAudienceDetails.digitalBehavior}</p>
               </div>
 
               <div>
                 <h4 className="text-sm text-gray-400 mb-1">Satın Alma Gücü</h4>
-                <p>{staticProjectDetails.aiAnalysis.targetAudience.details.purchasePower}</p>
+                <p>{staticTargetAudienceDetails.purchasePower}</p>
               </div>
             </div>
           </div>
